@@ -1,28 +1,40 @@
 import { useState } from 'react'
+import Hero from './components/Hero'
+import Lobby from './components/Lobby'
+import Game from './components/Game'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [phase, setPhase] = useState('home') // home | lobby | game
+  const [code, setCode] = useState('')
+  const [playerId, setPlayerId] = useState('')
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Vibe Coding Platform
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Your AI-powered development environment
-        </p>
-        <div className="text-center">
-          <button
-            onClick={() => setCount(count + 1)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-          >
-            Count is {count}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+
+  const createRoom = async ({ name, avatar }) => {
+    const res = await fetch(`${base}/rooms/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, avatar }) })
+    if (res.ok) {
+      const data = await res.json()
+      setCode(data.code)
+      setPlayerId(data.player_id)
+      setPhase('lobby')
+    }
+  }
+
+  const joinRoom = async ({ name, avatar, code }) => {
+    const res = await fetch(`${base}/rooms/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, avatar, code }) })
+    if (res.ok) {
+      const data = await res.json()
+      setCode(data.code)
+      setPlayerId(data.player_id)
+      setPhase('lobby')
+    }
+  }
+
+  if (phase === 'home') return <Hero onCreate={createRoom} onJoin={joinRoom} />
+  if (phase === 'lobby') return <Lobby code={code} playerId={playerId} onStart={() => setPhase('game')} />
+  if (phase === 'game') return <Game code={code} playerId={playerId} />
+
+  return null
 }
 
 export default App
